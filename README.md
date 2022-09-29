@@ -14,6 +14,8 @@ Follow these steps:
 conda create --name NoiseSparsity python=3.8
 conda activate NoiseSparsity
 conda install pip
+pip install --upgrade pip
+pip install --upgrade setuptools
 ```
 
 ## 2. Clone this github repo and install its requirements: 
