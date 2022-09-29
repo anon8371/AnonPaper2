@@ -18,11 +18,12 @@ output_directory = "FILL-IN"
 extras = dict(
 
     epochs_to_train_for = 500, 
-    num_workers=3, 
+    num_workers=0, 
     random_seed = 5,
     nneurons=[1000],
     opt='Adam',
     diffusion_noise=0.8,
+    use_wandb=False, 
 
 )
 
@@ -31,8 +32,11 @@ if load_path:
 
 model_params, model, data_module = get_params_net_dataloader(model_name, dataset_name, load_from_checkpoint=load_path, experiment_param_modifications=extras)
 
-wandb_logger = WandbLogger(project="Diffusion-SDM", entity="", save_dir=output_directory)
-model_params.logger = wandb_logger
+if model_params.use_wandb:
+    wandb_logger = WandbLogger(project="Diffusion-SDM", entity="", save_dir=output_directory)
+    model_params.logger = wandb_logger
+else: 
+    model_params.logger = None
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 if torch.cuda.is_available():
@@ -60,8 +64,7 @@ temp_trainer = pl.Trainer(
         enable_progress_bar = True,
         gpus=gpu, 
         callbacks = callbacks,
-        checkpoint_callback=checkpoint_callback, # dont save these test models.
-        reload_dataloaders_every_n_epochs=model_params.epochs_per_cl_task, 
+        #checkpoint_callback=checkpoint_callback, # dont save these test models. 
         #limit_train_batches=10,
         #profiler="simple" # if on then need to set epochs_to_train_for to a v low score.
         )

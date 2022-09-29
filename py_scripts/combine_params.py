@@ -46,7 +46,6 @@ def get_params_net_dataloader(
     dataset_path="data/",
     verbose=True,
     experiment_param_modifications=None,
-    continual_learn_reset_output_head = True, 
     ):
 
 
@@ -77,13 +76,6 @@ def get_params_net_dataloader(
         print("Custom args are:", experiment_param_modifications)
     for key, value in experiment_param_modifications.items():
         params[key] = value
-
-    # re directing to the split datasets. 
-    if params.continual_learning: 
-        dataset_path+="ContinualLearn/"
-        if params.split_random_seed is not None: 
-
-            params.torchified_dataset_suffix = params.torchified_dataset_suffix.replace("/",f"/RandSeed_{params.split_random_seed}_",1)
 
     # used for the custom faster torch datasets
     dataset_path+= params.torchified_dataset_suffix
@@ -181,19 +173,6 @@ def get_params_net_dataloader(
             # need to update the 
             model.classifier = nn.Linear(params.hdim, params.output_size, bias=params.use_bias_output)
 
-        if params.continual_learning:
-            # will reset the output no matter what. 
-
-            
-            # pure reload but modify a head
-            params.load_existing_optimizer_state = False
-            #NOTE: this is a bug but it is one I need to account for for now!!! 
-            params['check_val_every_n_epoch'] = 1
-            if continual_learn_reset_output_head:
-                print("CHANGING OUTPUT LAYER FOR CONTINUAL LEARNING ON NEW DATASET!")
-
-                model.net[-1] = nn.Linear(params.nneurons[-1], params.output_size, bias=params.use_bias_output)
-
         if "epoch" in full_cpkt:
             params.starting_epoch=full_cpkt["epoch"]
             if params.load_existing_optimizer_state:
@@ -220,10 +199,5 @@ def get_params_net_dataloader(
 
     # useful for wandb later. 
     params.first_layer_nneurons = params.nneurons[0]
-        
-    if params.continual_learning: 
-        assert params.diffusion_noise ==0.0, "Shouldnt have diffusion noise on!"
-
-    params.noise_off_during_eval = True if params.adversarial_eval_only else False
 
     return params, model, data_module

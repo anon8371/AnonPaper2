@@ -77,7 +77,6 @@ def start_experiment(exp_ind):
                         callbacks=callbacks,
                         checkpoint_callback = checkpoint_callback, 
                         detect_anomaly=False,
-                        reload_dataloaders_every_n_epochs=params.epochs_per_cl_task,
                         )
     temp_trainer.fit(model, data_module, ckpt_path=params.fit_load_state)
     wandb.finish()

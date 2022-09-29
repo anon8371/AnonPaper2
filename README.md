@@ -11,7 +11,7 @@ Follow these steps:
 ## 1. Set up a new Conda environment using: 
 
 ```
-conda create --name NoiseSparsity python=3.8
+conda create --name NoiseSparsity python=3.9
 conda activate NoiseSparsity
 conda install pip
 pip install --upgrade pip
@@ -32,16 +32,13 @@ You may be able to use other versions of the libraries found in `requirements.tx
 
 Make an account [here](https://wandb.ai/home) and put the details into `test_runner.py` under `wandb_logger=`. 
 
-Otherwise, set `use_wanbd=False` to run the models but no outputs will be available. 
+Otherwise, set `use_wanbd=False` to run the models but limited outputs will be printed. 
 
-## 4. Run `python test_runner.py` that will by default run an SDM model on Split MNIST. 
+## 4. Run `python test_runner.py` that will by default run an ReLU model on CIFAR10 latents with 0.8 noise. 
 
 See `exp_commands/` for all parameters used to run all of our experiments. 
 
-You can put these parameters into `test_runner.py` to run them and fill in `load_path=` with a trained model. To reproduce all of our results we recommend using a job parallelizer like Ray or SLURM to run each experiment as a different job. 
-
-If you want your model runs to be saved change `checkpoint_callback = False` on line 57 to `True`. Otherwise, only the continual learning models make while investigating continual learning will be saved out. 
-
+You can put these parameters into `test_runner.py` to run them and fill in `load_path=` with a trained model. To reproduce all of our results we recommend using a job parallelizer like Ray or SLURM to run each experiment as a different job. See `ray_runner.py` for our use of ray.
 
 ---
 

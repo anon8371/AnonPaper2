@@ -50,6 +50,7 @@ global_default_settings = EasyDict(
     normalize_n_transform_inputs =False, 
     use_convmixer_transforms=False,
     min_max_scaler = False, 
+    noise_off_during_eval = False, 
 
     # Logging
     metrics_to_log = ["loss", "accuracy"],
@@ -66,31 +67,12 @@ global_default_settings = EasyDict(
     num_cnn_receptive_field_imgs=10,
     num_task_attempt_imgs = 10, 
 
-    adversarial_train=False, 
-    adversarial_eval_only = False, # see how the model does during validation only
-    epoch_to_start_adversarial_training = 0,
-    use_auto_attack = True, 
-    use_pgd = True, # else will use FGSM
-    num_adversarial_attack_example_imgs=1,
-    adversarial_attack_norm=np.inf,
-    adversarial_max_distortion = 8/255, # for inf 0.03~= 8/255
-    pgd_step_size = 0.01,
-    pgd_step_iters=3,
-
     random_seed = None, 
 
     load_just_state_dict = False, 
 
     cifar10_mean = (0.4914, 0.4822, 0.4465),
     cifar10_std = (0.2471, 0.2435, 0.2616),
-
-    continual_learning = False, 
-    split_random_seed = None, #3,15,27,97
-    epochs_per_cl_task = 100,  
-
-    use_explain_away = False, 
-    explain_away_lr = 0.01,
-    explain_away_opt_z_n_grad_steps = 5,
 
     use_inhib_circuit = False, #"ALL-TO-ALL", #"INTERNEURON"
     only_inhibitory = False, # will apply ReLU activation and do a subtraction operation

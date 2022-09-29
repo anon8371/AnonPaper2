@@ -80,7 +80,9 @@ class BaseModel(pl.LightningModule):
         #import ipdb 
         #ipdb.set_trace() 
 
-        self.logger.experiment.config.update(
+        if self.params.use_wandb:
+
+            self.logger.experiment.config.update(
             self.params.__dict__, allow_val_change=True)
 
         # making the logger for train and val performance metrics. 
@@ -101,30 +103,17 @@ class BaseModel(pl.LightningModule):
             opt.zero_grad()
 
         x, y = data_batch
-
-        if self.params.adversarial_train and (self.trainer.current_epoch>=self.params.epoch_to_start_adversarial_training):
-            # runs for train and eval. 
-            self.turn_off_diffusion_noise()
-            x = generate_adversarial_image(self, x, y, batch_idx)
-        
-        elif not self.training and self.params.adversarial_eval_only:
-            # just for eval. 
-            x = generate_adversarial_image(self, x, y, batch_idx)
             
-        if self.params.use_explain_away:
-            logits, loss, logged_loss = self.expectation_maximization(x,y)
-    
-        else:
-            logits, latent_code = self.forward(x)
-            # loss here is still a vector of the batch size. 
-            loss = self.compute_loss(logits, y, x)
-            loss += self.extra_loss_terms(latent_code)
-            logged_loss = loss 
+        logits, latent_code = self.forward(x)
+        # loss here is still a vector of the batch size. 
+        loss = self.compute_loss(logits, y, x)
+        loss += self.extra_loss_terms(latent_code)
+        logged_loss = loss 
 
         loss_metrics = {"loss":logged_loss.sum().item()}
         loss_metrics.update( self.extra_loss_metrics(logits, y, x) )
         store_loss_metrics(self.performance_logger, self.training,
-            loss_metrics, len(x), dataloader_idx, self.params.continual_learning, frac_tasks_seen=( (self.trainer.datamodule.curr_index+1) / self.params.num_data_splits) )
+            loss_metrics, len(x) )
 
         if self.training: 
             # loss up to this point is a sum (both main loss and extra terms) (easier for logging data per epoch. thus here I want to divide it by batch size. )

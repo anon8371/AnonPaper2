@@ -226,84 +226,6 @@ class Diffusion_Base(BaseModel):
                 f"Mean_cosine_sim_to_transpose": cos_sims.mean() ,
             })
 
-    def explain_away_decode_and_loss_(self, z, y, loss_reduction="mean"): 
-        # inner loop. 
-        x_hat = self.run_model_from_neuron_layer_to_end(z, pre_act_func=True)
-        # consider changing to "compute loss. but worried about extra loss terms in there."
-        loss = F.mse_loss(x_hat, y, reduction=loss_reduction)
-        return x_hat, loss
-
-    def expectation_maximization(self, x,y):
-        # returns logits (model prediction) and loss
-
-        # 1. Get initial code prediction
-
-        # should the encoder get the full neuron activatoin values or them after they go through the ReLU? 
-
-        og_x = torch.clone(x)
-
-        z_pre_act_init = self.run_model_till_neuron_activations(x, apply_noise=True, apply_neuron_activation=False)
-
-        ### Explaining away results: 
-
-        # training iterations. 
-        z_opt = torch.nn.Parameter(z_pre_act_init.detach().clone().requires_grad_(True)) 
-
-        # 2. Update Z keeping everything else fixed (Expectation)
-
-        optimizer_of_z = optim.Adam([z_opt], lr=self.params.explain_away_lr)
-
-        # run through activation and until output
-
-        for i in range(self.params.explain_away_opt_z_n_grad_steps):
-
-            optimizer_of_z.zero_grad()
-
-            with torch.enable_grad():
-                # in case I am in validation mode
-                _, z_opt_loss = self.explain_away_decode_and_loss_(z_opt, x) # because it is the MSE loss. 
-
-            z_opt_loss.backward()
-            optimizer_of_z.step()
-
-        # 3. Update the model parameters (Maximization)
-        z_opt.detach_()
-
-        enc_loss = F.mse_loss(z_pre_act_init, z_opt, reduction='none').mean(dim=1)
-
-        logits, dec_loss = self.explain_away_decode_and_loss_(z_opt,x, loss_reduction="none")
-        dec_loss = dec_loss.mean(dim=1)
-
-        weight_update_loss = enc_loss+dec_loss
-
-        if self.params.use_wandb:
-            wandb.log({
-                "explain_away/explain_away_enc_loss": enc_loss.mean().item(),
-                "explain_away/explain_away_dec_loss": dec_loss.mean().item(),
-                "explain_away/mean_terminal_active_neurons": (z_opt>0.0).type(torch.float).mean(),
-            })
-
-        ### Pretend not explaining away: 
-        if self.params.use_wandb:
-            with torch.no_grad():
-                logits, wo_explain_away_dec_loss = self.explain_away_decode_and_loss_( torch.clone(z_pre_act_init.detach() ),x, loss_reduction="none")
-                wo_explain_away_dec_loss=wo_explain_away_dec_loss.mean(dim=1)
-
-            prefix = "TRAIN" if self.training else "VAL"
-            
-            wandb.log({
-                f"explain_away/{prefix}_NO_explain_away_dec_loss": wo_explain_away_dec_loss.mean().item()
-            })
-
-            self.log_closest_pattern_accuracy(og_x, logits)
-
-            loss_to_log = wo_explain_away_dec_loss
-        else: 
-            loss_to_log = 0 # placeholder.
-
-
-        return logits, weight_update_loss, loss_to_log
-
     def log_closest_pattern_accuracy(self, og_x, x):
         if not self.params.classification and self.params.use_wandb: 
             noise_acc = perc_closest_targets(self.run_model_till_noise(og_x), og_x)
@@ -411,20 +333,3 @@ class SDM_DIFFUSION(Diffusion_Base):
 
     def forward(self, x, ):
         return super().forward(x)
-
-
-'''class RESNET50_DIFFUSION(Diffusion_Base):
-    def __init__(self, params):
-        super().__init__(params)
-
-        self.net_layers += [
-            ResNet50(params)
-        ]
-
-
-        self.net = nn.Sequential( 
-            *self.net_layers)
-
-    def forward(self, x, ):
-        # will run through the whole model.
-        return super().forward(x)'''

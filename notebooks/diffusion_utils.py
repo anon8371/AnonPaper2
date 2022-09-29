@@ -107,7 +107,6 @@ def load_model(vae_run_name, dataset_path, save_dir, device, extra_extras=False,
     extras = dict(
         epochs_to_train_for=10,
         num_workers=1, 
-        adversarial_attacks=False, 
         device=device,
         dataset_path="../data/", 
         log_topk_metrics=False  ,

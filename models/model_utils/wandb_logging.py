@@ -24,26 +24,12 @@ def increment_dict(dic, key, val):
         dic[key]=val 
     #return dic
 
-def store_loss_metrics(performance_logger, is_training, metrics, batch_size, dataloader_idx, continual_learning, frac_tasks_seen=None):
+def store_loss_metrics(performance_logger, is_training, metrics, batch_size):
     # reverses the mean operation so apply it later at the end.
     prefix = "train" if is_training else "val"
     for k, v in metrics.items():
         increment_dict(performance_logger[prefix], k, v)
     increment_dict(performance_logger[prefix], 'batch_size', batch_size)
-
-    if not is_training and continual_learning:
-        # store local instead of global performance metrics. Only for validation. 
-        if dataloader_idx is None: 
-            dataloader_idx=0 # this is before it is a list!
-        increment_dict(performance_logger[prefix], f"batch_size_split_{dataloader_idx}", batch_size)
-        for k, v in metrics.items():
-            if "accuracy" in metrics.keys():
-                if k=="loss":
-                    continue 
-                    # if I am logging accuracy then I dont care about the splitwise loss metrics (for now)
-            increment_dict(performance_logger[prefix], k+f"_split_{dataloader_idx}", v)
-            increment_dict(performance_logger[prefix], k+"_num_tasks_adjusted", v*frac_tasks_seen)
-            # have the validation global be adjusted by the total amount of data: 
             
 def log_loss_metrics(self):
     # adjust by batch size and alter name of each item before logging out to wandb. Resets original too
@@ -75,7 +61,8 @@ def log_wandb(self, dic, commit=False):
         dic['global_step'] = self.trainer.global_step
         wandb.log(dic,commit=commit)
     else: 
-        print(dic)
+        if "train/loss" in dic.keys() or "val/loss" in dic.keys():
+            print(dic)
 
 def log_image(self, weights_to_plot, title, sub_title, inds=None, cnn_weights=False, num_images=None):
     if cnn_weights:

@@ -76,16 +76,6 @@ class LightningDataModule(pl.LightningDataModule):
         self.dataset_name = params.dataset_name
         self.train_dataset_size = params.dataset_size
 
-        self.continual_learning = params.continual_learning
-        self.curr_index = -1 # used in continual learning and will increment immediately
-        if params.continual_learning: 
-            self.num_data_splits=params.num_data_splits
-            self.epochs_per_cl_task = params.epochs_per_cl_task
-
-        # note these are for images in the range 0-1 not 0-255
-        cifar10_mean = (0.4914, 0.4822, 0.4465)
-        cifar10_std = (0.2471, 0.2435, 0.2616)
-            
         transforms_list = []
         # small amount of special processing here. 
         if "MNIST" in self.dataset_name: 
@@ -100,50 +90,16 @@ class LightningDataModule(pl.LightningDataModule):
         else:
             self.data_function = Torch_Dataset
 
-        if "CIFAR10" in params.dataset_name and params.normalize_n_transform_inputs:
-                transforms_list+= [
-                    transforms.Lambda(lambda x: x.type(torch.float)/255 ), 
-                    #transforms.Normalize(cifar10_mean, cifar10_std) 
-                    ]
-
-        if params.use_convmixer_transforms and not params.normalize_n_transform_inputs:
-            self.train_transform = transforms.Compose([
-                transforms.RandomResizedCrop(32, scale=(params.scale, 1.0), ratio=(1.0, 1.0)),
-                transforms.RandomHorizontalFlip(p=0.5),
-                transforms.RandAugment(num_ops=params.ra_n, magnitude=params.ra_m),
-                transforms.ColorJitter(params.jitter, params.jitter, params.jitter),
-                #transforms.ToTensor(),
-                # the input is unint8. Then but it is already a tensor not a PIL so need to convert to float and decimal points
-                transforms.Lambda(lambda x: x.type(torch.float)/255 ),
-                #transforms.Normalize(cifar10_mean, cifar10_std),
-                transforms.RandomErasing(p=params.reprob)
-            ])
-
-            self.test_transform = transforms.Compose([
-                #transforms.ToTensor(),
-                transforms.Lambda(lambda x: x.type(torch.float)/255 ),
-                #transforms.Normalize(cifar10_mean, cifar10_std)
-            ])
-
-        else: 
-            self.train_transform = transforms.Compose(transforms_list)
-            self.test_transform = transforms.Compose(transforms_list)
+        
+        self.train_transform = transforms.Compose(transforms_list)
+        self.test_transform = transforms.Compose(transforms_list)
 
     def setup(self, stage, train_shuffle=True, test_shuffle=True):
         
         self.train_shuffle = train_shuffle
         self.test_shuffle = test_shuffle
-        
-        if self.continual_learning: 
-            # handling each of the different training splits. 
-            self.train_datasets = [ self.data_function(
-                self.data_path, train=True, transform=self.train_transform, split_ind = split_ind
-            ) for split_ind in range(self.num_data_splits) ]
-            self.test_datasets = [ self.data_function(
-                self.data_path, train=False, transform=self.train_transform, split_ind = split_ind
-            ) for split_ind in range(self.num_data_splits) ]
 
-        elif "MNIST" in self.dataset_name:
+        if "MNIST" in self.dataset_name:
             # todo: homogenize dataset size passing in
             self.train_data = self.data_function(
                 self.data_path, train=True, download=True, transform=self.train_transform
@@ -152,7 +108,6 @@ class LightningDataModule(pl.LightningDataModule):
                 self.data_path, train=False,download=True, transform=self.test_transform,
                 )
 
-        
         else: 
             self.train_data = self.data_function(
                 self.data_path, train=True, download=True, transform=self.train_transform, data_size=self.train_dataset_size,
@@ -163,24 +118,13 @@ class LightningDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
         # updating here, called before validation dataloader: 
-        if self.continual_learning and self.trainer.current_epoch % self.epochs_per_cl_task == 0:
-
-            if self.curr_index<(self.num_data_splits-1): # 5 datasets for now.
-                # TODO: make this more general. 
-                self.curr_index += 1
-                print("SWITCHING DATASET BY INCREMENTING INDEX TO:", self.curr_index, "EPOCH IS:", self.trainer.current_epoch)
-
-        if self.continual_learning: 
-            self.train_data = self.train_datasets[self.curr_index]
 
         return DataLoader(
             self.train_data, batch_size=self.batch_size, shuffle=self.train_shuffle, num_workers=self.num_workers
         )
 
     def val_dataloader(self):
-        if self.continual_learning:
-            return [DataLoader(ds, batch_size=self.batch_size, shuffle=True , num_workers=self.num_workers) for ds in self.test_datasets[:self.curr_index+1]]
-        else: 
-            return DataLoader(
+         
+        return DataLoader(
                 self.test_data, batch_size=self.batch_size, shuffle=self.test_shuffle , num_workers=self.num_workers
             )

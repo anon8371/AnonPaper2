@@ -1,5 +1,3 @@
-from optimizers import SparseAdam, SparseSGDM, DemonRanger
-import torch_optimizer as add_opts
 import torch.optim as optim 
 
 '''
