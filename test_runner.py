@@ -64,6 +64,7 @@ temp_trainer = pl.Trainer(
         enable_progress_bar = True,
         gpus=gpu, 
         callbacks = callbacks,
+        enable_checkpointing=False,
         #checkpoint_callback=checkpoint_callback, # dont save these test models. 
         #limit_train_batches=10,
         #profiler="simple" # if on then need to set epochs_to_train_for to a v low score.

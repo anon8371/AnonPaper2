@@ -16,7 +16,7 @@ global_default_settings = EasyDict(
     epochs_to_train_for=200,
 
     # training config
-    num_workers=1,
+    num_workers=0,
     early_stopping=False,
 
     separate_bias_opts = False, 
@@ -36,7 +36,7 @@ global_default_settings = EasyDict(
     lr_scheduler_step_size = 30,
     step_lr_gamma = 0.1,
 
-    # network settings
+    # Network settings
     use_sdm = False, 
     nneurons=[1000],
     act_func=nn.ReLU(),
@@ -85,15 +85,7 @@ global_default_settings = EasyDict(
     dropout_prob=0.0,
 
     activation_l1_coefficient = None,
-
     non_relu_act_threshold = 0.0001, 
-
-    # ConvMixer processing parameters
-    scale=0.75,
-    reprob=0.25, 
-    ra_m=8,
-    ra_n=1,
-    jitter=0.1,
 )
 
 default_sdm_model_settings = EasyDict(
